@@ -110,6 +110,37 @@ return json(object(
         field("username", rawProfile.email)))
 ```
 
+In addition to the previous script, we'll need to configure a script that accounts for the possibility of null values in the JSON payload returned from ID.me. To create this script, do the following: 
+
+* Navigate to `Scripts` on the left side of the screen, click `+ New Script`
+* Provide a Name for the script, such as `IDmeNormalizedProfileToMangedUser`
+* Set `Script Type` to `Social Identity Provider Profile Transformation`
+* Within the script field, beginning at line 9, add the following script.
+```
+import static org.forgerock.json.JsonValue.field
+import static org.forgerock.json.JsonValue.json
+import static org.forgerock.json.JsonValue.object
+
+import org.forgerock.json.JsonValue
+
+JsonValue managedUser = json(object(
+        field("mail", normalizedProfile.email),
+        field("userName", normalizedProfile.username)))
+
+if (normalizedProfile.givenName.isNotNull()) managedUser.put("givenName", normalizedProfile.givenName)
+if (normalizedProfile.familyName.isNotNull()) managedUser.put("sn", normalizedProfile.familyName)
+if (normalizedProfile.postalAddress.isNotNull()) managedUser.put("postalAddress", normalizedProfile.postalAddress)
+if (normalizedProfile.addressLocality.isNotNull()) managedUser.put("city", normalizedProfile.addressLocality)
+if (normalizedProfile.addressRegion.isNotNull()) managedUser.put("stateProvince", normalizedProfile.addressRegion)
+if (normalizedProfile.postalCode.isNotNull()) managedUser.put("postalCode", normalizedProfile.postalCode)
+if (normalizedProfile.country.isNotNull()) managedUser.put("country", normalizedProfile.country)
+if (normalizedProfile.phone.isNotNull()) managedUser.put("telephoneNumber", normalizedProfile.phone)
+
+return managedUser
+```
+* Click `Save Changes`
+* After creating this script, navigate to and click the `Social Provider Handler Node` on your social registration tree. On the right side, under `Transformation Script`, select our new custom script titled `IDmeNormalizedProfileToMangedUser` - then click `Save`
+
 ### Configure the Identity Provider with ID.me Details 
 
 Populate the configuration page with details from your ID.me instance. For more information about each option, click on the Tooltip next to each respective field. Below is guide for some of the ID.me specific fields. Do not worry if you are missing some of the details; you will be able to edit the configuration later, after saving the client profile for the first time. Save your changes to access all the configuration fields for the client. 
@@ -121,11 +152,13 @@ Populate the configuration page with details from your ID.me instance. For more 
 * `Access Token Endpoint URL`: `https://api.idmelabs.com/oauth/token` if testing in sandbox OR `https://api.id.me/oauth/token` for a prooduction implementation 
 * `User Profile Service URL`: `https://api.idmelabs.com/api/public/v2/attributes.json` if testing in sandbox OR `https://api.id.me/api/public/v2/attributes.json` for a production implementation
 * `Redirect URL`: This will be tenet specific, following the convention `https://[YOUR_FQDN_HERE]/am` 
-* `OAuth Scopes`: Gather the scope(s) for the requested resources from your ID.me instance. If you have any questions, work with your ID.me Sales Engineer for guidance. 
+* `Scope Delimeter`: Specifies the delimiter used to separate scope values. For example, a blank space ( ), or a comma character (,) - most providers use a blank space
+* `OAuth Scopes`: Gather the scope(s) for the requested resources from your ID.me instance. If you have any questions, work with your ID.me Sales Engineer for guidance
 * `Well Known Endpoint`: `https://api.idmelabs.com/oidc/.well-known/openid-configuration` if testing in sandbox OR `https://api.id.me/oidc/.well-known/openid-configuration` for a production implementation
 * `Issuer`: `https://api.idmelabs.com/oidc` if testing in sandbox OR `https://api.id.me/oidc` for a production implementation
 * `JWKS URI Endpoint`: `https://api.idmelabs.com/oidc/.well-known/jwks` if testing in sandbox OR `https://api.id.me/oidc/.well-known/jwks` for a production implementation
 * `Transform Script`: Set this value to the `Custom Transformation Script` created in the previous section - likely `ID.me Profile Transformation`
+* `UI Config Properties`: To configure the ID.me button image, add a `key` titled 'buttonDisplayName' and a `value` set to 'ID.me'. Then click the `+` icon to add another key/value pair. On the new row, set the `key` as 'buttonImage' and the `value` to https://s3.amazonaws.com/idme-design/brand-assets/Primary-IDme-Logo-RGB.svg 
 
 ## Test ID.me Configuration
 
